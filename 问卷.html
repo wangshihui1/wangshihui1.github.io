@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>生产统计多问卷系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+    rel="stylesheet"
+  />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36CFC9',
+            neutral: '#F5F7FA',
+            dark: '#1D2129'
+          }
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-shadow {
+        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+      }
+      .btn-hover {
+        @apply transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5;
+      }
+    }
+  </style>
+</head>
+<body class="bg-neutral min-h-screen">
+  <!-- 顶部导航 -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-xl font-bold text-primary flex items-center">
+        <i class="fa fa-clipboard-check mr-2"></i>生产统计多问卷系统
+      </h1>
+      <div class="flex gap-2">
+        <button id="nav-surveys" class="px-3 py-1.5 rounded-md bg-primary text-white btn-hover">
+          <i class="fa fa-th-list mr-1"></i>问卷管理
+        </button>
+        <button id="nav-records" class="px-3 py-1.5 rounded-md bg-white text-primary border border-primary btn-hover">
+          <i class="fa fa-history mr-1"></i>数据记录
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主内容区 -->
+  <main class="container mx-auto px-4 py-6 mb-20">
+    <!-- 1. 问卷列表页 -->
+    <section id="surveys-section" class="block">
+      <div class="bg-white rounded-lg p-6 card-shadow mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-dark">我的问卷</h2>
+          <button id="create-survey" class="px-4 py-2 bg-primary text-white rounded-lg btn-hover">
+            <i class="fa fa-plus mr-1"></i>新建问卷
+          </button>
+        </div>
+        <div id="surveys-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="text-center text-gray-400 py-10">
+            <i class="fa fa-file-text-o text-4xl mb-2"></i>
+            <p>暂无问卷，点击「新建问卷」创建</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 问卷编辑页 -->
+    <section id="editor-section" class="hidden">
+      <div class="bg-white rounded-lg p-6 card-shadow">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-dark" id="editor-title">编辑问卷</h2>
+          <div class="flex gap-2">
+            <button id="back-to-list" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg btn-hover">
+              <i class="fa fa-arrow-left mr-1"></i>返回
+            </button>
+            <button id="save-survey" class="px-3 py-1.5 bg-primary text-white rounded-lg btn-hover">
+              <i class="fa fa-save mr-1"></i>保存
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">问卷标题</label>
+          <input id="edit-title" type="text" class="w-full px-3 py-2 border rounded" placeholder="如：A车间日产量报表">
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">问卷说明</label>
+          <textarea id="edit-desc" class="w-full px-3 py-2 border rounded" rows="2" placeholder="填写说明"></textarea>
+        </div>
+
+        <!-- 题型按钮 -->
+        <div class="flex flex-wrap gap-2 mb-6">
+          <button id="add-radio" class="px-3 py-1.5 bg-blue-500 text-white rounded btn-hover">
+            <i class="fa fa-dot-circle-o mr-1"></i>单选
+          </button>
+          <button id="add-select" class="px-3 py-1.5 bg-green-500 text-white rounded btn-hover">
+            <i class="fa fa-list-ul mr-1"></i>下拉
+          </button>
+          <button id="add-date" class="px-3 py-1.5 bg-yellow-500 text-white rounded btn-hover">
+            <i class="fa fa-calendar mr-1"></i>日期
+          </button>
+          <button id="add-input" class="px-3 py-1.5 bg-purple-500 text-white rounded btn-hover">
+            <i class="fa fa-font mr-1"></i>填空
+          </button>
+        </div>
+
+        <!-- 问题容器 -->
+        <div id="edit-questions" class="space-y-4 mb-6">
+          <div class="p-3 border rounded bg-gray-50">
+            <div class="flex justify-between">
+              <span>1. 填写日期（自动）</span>
+              <button disabled class="text-red-400 text-sm"><i class="fa fa-ban"></i> 固定</button>
+            </div>
+            <input type="date" disabled class="w-full mt-1 px-2 py-1 border rounded bg-gray-100">
+          </div>
+          <div class="p-3 border rounded bg-gray-50">
+            <div class="flex justify-between">
+              <span>2. 负责人姓名</span>
+              <button disabled class="text-red-400 text-sm"><i class="fa fa-ban"></i> 固定</button>
+            </div>
+            <input type="text" disabled class="w-full mt-1 px-2 py-1 border rounded bg-gray-100" placeholder="必填">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 问卷填写页（扫码进入） -->
+    <section id="fill-section" class="hidden">
+      <div class="bg-white rounded-lg p-6 card-shadow max-w-2xl mx-auto">
+        <h2 id="fill-title" class="text-xl font-bold text-center mb-2">问卷标题</h2>
+        <p id="fill-desc" class="text-gray-600 text-center mb-6">问卷说明</p>
+        <div id="fill-fields" class="space-y-5">
+          <!-- 动态生成表单 -->
+        </div>
+        <div class="mt-8 flex gap-4">
+          <button id="submit-fill" class="flex-1 py-3 bg-primary text-white rounded font-medium btn-hover">
+            <i class="fa fa-check-circle mr-1"></i>提交
+          </button>
+          <button id="reset-fill" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded font-medium btn-hover">
+            <i class="fa fa-refresh mr-1"></i>重置
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 记录查看页 -->
+    <section id="records-section" class="hidden">
+      <div class="bg-white rounded-lg p-6 card-shadow">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-dark">填写记录</h2>
+          <button id="back-from-records" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg btn-hover">
+            <i class="fa fa-arrow-left mr-1"></i>返回
+          </button>
+        </div>
+        <div class="mb-4 flex flex-wrap gap-2">
+          <select id="record-survey-id" class="px-3 py-2 border rounded flex-1 min-w-[180px]">
+            <option value="">全部问卷</option>
+          </select>
+          <input id="record-name" type="text" class="px-3 py-2 border rounded flex-1 min-w-[180px]" placeholder="负责人姓名">
+          <button id="search-records" class="px-3 py-2 bg-primary text-white rounded btn-hover">
+            <i class="fa fa-search mr-1"></i>查询
+          </button>
+          <button id="export-records" class="px-3 py-2 bg-green-500 text-white rounded btn-hover">
+            <i class="fa fa-download mr-1"></i>导出
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="border px-3 py-2 text-left">问卷</th>
+                <th class="border px-3 py-2 text-left">日期</th>
+                <th class="border px-3 py-2 text-left">负责人</th>
+                <th class="border px-3 py-2 text-left">内容</th>
+                <th class="border px-3 py-2 text-left">操作</th>
+              </tr>
+            </thead>
+            <tbody id="records-body" class="text-sm">
+              <tr>
+                <td colspan="5" class="border px-3 py-6 text-center text-gray-500">暂无记录</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-white py-3 fixed bottom-0 w-full border-t text-center text-gray-500 text-sm">
+    生产统计多问卷系统 © 2026
+  </footer>
+
+  <script>
+    // ========== 全局数据结构 ==========
+    // 问卷列表：{ surveyId, title, desc, questions }
+    let surveys = JSON.parse(localStorage.getItem('surveys')) || [];
+    // 填写记录：{ surveyId, date, name, answers, submitTime }
+    let records = JSON.parse(localStorage.getItem('productionRecords')) || [];
+
+    // 当前编辑/填写的问卷ID
+    let currentSurveyId = null;
+    let questionSeq = 3;
+
+    // DOM
+    const surveysSection = document.getElementById('surveys-section');
+    const editorSection = document.getElementById('editor-section');
+    const fillSection = document.getElementById('fill-section');
+    const recordsSection = document.getElementById('records-section');
+
+    // ========== 工具函数 ==========
+    function guid() {
+      return 's_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    }
+    function saveSurveys() {
+      localStorage.setItem('surveys', JSON.stringify(surveys));
+    }
+    function saveRecords() {
+      localStorage.setItem('productionRecords', JSON.stringify(records));
+    }
+
+    // ========== 页面切换 ==========
+    function showSurveys() {
+      surveysSection.classList.remove('hidden');
+      editorSection.classList.add('hidden');
+      fillSection.classList.add('hidden');
+      recordsSection.classList.add('hidden');
+      renderSurveyList();
+    }
+    function showEditor(surveyId = null) {
+      currentSurveyId = surveyId;
+      editorSection.classList.remove('hidden');
+      surveysSection.classList.add('hidden');
+      fillSection.classList.add('hidden');
+      recordsSection.classList.add('hidden');
+      initEditor(surveyId);
+    }
+    function showFill(surveyId) {
+      currentSurveyId = surveyId;
+      fillSection.classList.remove('hidden');
+      surveysSection.classList.add('hidden');
+      editorSection.classList.add('hidden');
+      recordsSection.classList.add('hidden');
+      initFill(surveyId);
+    }
+    function showRecords() {
+      recordsSection.classList.remove('hidden');
+      surveysSection.classList.add('hidden');
+      editorSection.classList.add('hidden');
+      fillSection.classList.add('hidden');
+      initRecords();
+    }
+
+    // ========== 1. 问卷列表 ==========
+    function renderSurveyList() {
+      const el = document.getElementById('surveys-list');
+      if (surveys.length === 0) {
+        el.innerHTML = `
+          <div class="text-center text-gray-400 py-10">
+            <i class="fa fa-file-text-o text-4xl mb-2"></i>
+            <p>暂无问卷，点击「新建问卷」</p>
+          </div>`;
+        return;
+      }
+      let html = '';
+      surveys.forEach(s => {
+        const url = window.location.origin + window.location.pathname + '?surveyId=' + s.surveyId;
+        html += `
+        <div class="border rounded-lg p-4 hover:shadow-md transition">
+          <h3 class="font-semibold mb-1">${s.title}</h3>
+          <p class="text-sm text-gray-500 mb-3 line-clamp-2">${s.desc || '无说明'}</p>
+          <div class="text-xs text-gray-400 mb-3">ID: ${s.surveyId}</div>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <button onclick="showFill('${s.surveyId}')" class="px-2 py-1 bg-blue-500 text-white rounded">填写</button>
+            <button onclick="showEditor('${s.surveyId}')" class="px-2 py-1 bg-gray-200 rounded">编辑</button>
+            <button onclick="copyUrl('${url}')" class="px-2 py-1 bg-green-500 text-white rounded">复制链接</button>
+            <button onclick="deleteSurvey('${s.surveyId}')" class="px-2 py-1 bg-red-500 text-white rounded">删除</button>
+          </div>
+        </div>`;
+      });
+      el.innerHTML = html;
+    }
+    window.copyUrl = function (url) {
+      navigator.clipboard.writeText(url).then(() => alert('链接已复制\n生成二维码即可扫码填写'));
+    };
+    window.deleteSurvey = function (surveyId) {
+      if (!confirm('确定删除该问卷？记录会保留但无法关联')) return;
+      surveys = surveys.filter(s => s.surveyId !== surveyId);
+      saveSurveys();
+      renderSurveyList();
+    };
+
+    // ========== 2. 问卷编辑器 ==========
+    function initEditor(surveyId) {
+      const titleEl = document.getElementById('editor-title');
+      const editTitle = document.getElementById('edit-title');
+      const editDesc = document.getElementById('edit-desc');
+      const editQuestions = document.getElementById('edit-questions');
+      questionSeq = 3;
+
+      if (surveyId) {
+        const s = surveys.find(x => x.surveyId === surveyId);
+        titleEl.textContent = '编辑问卷：' + s.title;
+        editTitle.value = s.title;
+        editDesc.value = s.desc;
+        // 渲染已有题目
+        editQuestions.innerHTML = `
+          <div class="p-3 border rounded bg-gray-50">
+            <div class="flex justify-between">
+              <span>1. 填写日期（自动）</span>
+              <button disabled class="text-red-400 text-sm"><i class="fa fa-ban"></i> 固定</button>
+            </div>
+            <input type="date" disabled class="w-full mt-1 px-2 py-1 border rounded bg-gray-100">
+          </div>
+          <div class="p-3 border rounded bg-gray-50">
+            <div class="flex justify-between">
+              <span>2. 负责人姓名</span>
+              <button disabled class="text-red-400 text-sm"><i class="fa fa-ban"></i> 固定</button>
+            </div>
+            <input type="text" disabled class="w-full mt-1 px-2 py-1 border rounded bg-gray-100" placeholder="必填">
+          </div>`;
+        s.questions.forEach(q => addQuestionUI(q.type, q.title, q.options));
+      } else {
+        titleEl.textContent = '新建问卷';
+        editTitle.value = '';
+        editDesc.value = '';
+        editQuestions.innerHTML = `
+          <div class="p-3 border rounded bg-gray-50">
+            <div class="flex justify-between">
+              <span>1. 填写日期（自动）</span>
+              <button disabled class="text-red-400 text-sm"><i class="fa fa-ban"></i> 固定</button>
+            </div>
+            <input type="date" disabled class="w-full mt-1 px-2 py-1 border rounded bg-gray-100">
+          </div>
+          <div class="p-3 border rounded bg-gray-50">
+            <div class="flex justify-between">
+              <span>2. 负责人姓名</span>
+              <button disabled class="text-red-400 text-sm"><i class="fa fa-ban"></i> 固定</button>
+            </div>
+            <input type="text" disabled class="w-full mt-1 px-2 py-1 border rounded bg-gray-100" placeholder="必填">
+          </div>`;
+      }
+    }
+
+    // 添加题目UI
+    function addQuestionUI(type, title = '', options = []) {
+      const editQuestions = document.getElementById('edit-questions');
+      const item = document.createElement('div');
+      item.className = 'p-3 border rounded bg-white question-item';
+      item.dataset.type = type;
+      let optHtml = '';
+      if (type === 'radio' || type === 'select') {
+        optHtml = `<div class="options-container mt-2 space-y-1">`;
+        if (options.length === 0) options = ['选项1', '选项2'];
+        options.forEach((opt, i) => {
+          optHtml += `
+          <div class="flex gap-1">
+            <input type="text" class="flex-1 px-2 py-1 border rounded option" value="${opt}">
+            <button type="button" class="del-opt text-red-500"><i class="fa fa-minus"></i></button>
+          </div>`;
+        });
+        optHtml += `<button type="button" class="add-opt text-xs text-blue-500 mt-1"><i class="fa fa-plus"></i> 加选项</button></div>`;
+      }
+      item.innerHTML = `
+        <div class="flex justify-between mb-2">
+          <span class="font-medium">${questionSeq}. ${typeName(type)}</span>
+          <button class="del-q text-red-500 text-sm"><i class="fa fa-trash"></i> 删除</button>
+        </div>
+        <input type="text" class="q-title w-full px-2 py-1 border rounded mb-1" value="${title}" placeholder="问题标题">
+        ${optHtml}
+      `;
+      editQuestions.appendChild(item);
+      questionSeq++;
+      bindQuestionEvents(item);
+    }
+    function typeName(t) {
+      if (t === 'radio') return '单选题';
+      if (t === 'select') return '下拉题';
+      if (t === 'date') return '日期题';
+      if (t === 'input') return '填空题';
+      return '题';
+    }
+    function bindQuestionEvents(el) {
+      el.querySelector('.del-q').addEventListener('click', () => {
+        el.remove();
+        renumberQuestions();
+      });
+      const addOpt = el.querySelector('.add-opt');
+      if (addOpt) {
+        addOpt.addEventListener('click', () => {
+          const oc = el.querySelector('.options-container');
+          const div = document.createElement('div');
+          div.className = 'flex gap-1';
+          div.innerHTML = `
+            <input type="text" class="flex-1 px-2 py-1 border rounded option" placeholder="新选项">
+            <button class="del-opt text-red-500"><i class="fa fa-minus"></i></button>
+          `;
+          oc.insertBefore(div, addOpt);
+          div.querySelector('.del-opt').addEventListener('click', () => div.remove());
+        });
+      }
+      el.querySelectorAll('.del-opt').forEach(b => {
+        b.addEventListener('click', () => b.parentElement.remove());
+      });
+    }
+    function renumberQuestions() {
+      const items = document.querySelectorAll('.question-item');
+      questionSeq = 3;
+      items.forEach(it => {
+        const span = it.querySelector('.font-medium');
+        const t = it.dataset.type;
+        span.textContent = `${questionSeq}. ${typeName(t)}`;
+        questionSeq++;
+      });
+    }
+
+    // 保存问卷
+    document.getElementById('save-survey').addEventListener('click', () => {
+      const title = document.getElementById('edit-title').value.trim();
+      const desc = document.getElementById('edit-desc').value.trim();
+      if (!title) { alert('请输入问卷标题'); return; }
+      const qs = [];
+      document.querySelectorAll('.question-item').forEach(it => {
+        const type = it.dataset.type;
+        const title = it.querySelector('.q-title').value.trim();
+        const options = [];
+        it.querySelectorAll('.option').forEach(o => {
+          const v = o.value.trim();
+          if (v) options.push(v);
+        });
+        if (title) qs.push({ type, title, options });
+      });
+      if (currentSurveyId) {
+        const idx = surveys.findIndex(x => x.surveyId === currentSurveyId);
+        surveys[idx] = { ...surveys[idx], title, desc, questions: qs };
+      } else {
+        surveys.push({ surveyId: guid(), title, desc, questions: qs });
+      }
+      saveSurveys();
+      alert('保存成功');
+      showSurveys();
+    });
+
+    // 题型按钮
+    document.getElementById('add-radio').onclick = () => addQuestionUI('radio');
+    document.getElementById('add-select').onclick = () => addQuestionUI('select');
+    document.getElementById('add-date').onclick = () => addQuestionUI('date');
+    document.getElementById('add-input').onclick = () => addQuestionUI('input');
+
+    // ========== 3. 填写页面 ==========
+    function initFill(surveyId) {
+      const s = surveys.find(x => x.surveyId === surveyId);
+      if (!s) { alert('问卷不存在'); showSurveys(); return; }
+      document.getElementById('fill-title').textContent = s.title;
+      document.getElementById('fill-desc').textContent = s.desc;
+      const fields = document.getElementById('fill-fields');
+      fields.innerHTML = `
+        <div class="p-3 border rounded">
+          <label class="block text-sm font-medium mb-1">填写日期 <span class="text-red-500">*</span></label>
+          <input id="fill-date" type="date" class="w-full px-3 py-2 border rounded" required>
+        </div>
+        <div class="p-3 border rounded">
+          <label class="block text-sm font-medium mb-1">负责人姓名 <span class="text-red-500">*</span></label>
+          <input id="fill-name" type="text" class="w-full px-3 py-2 border rounded" placeholder="请输入姓名" required>
+        </div>
+      `;
+      document.getElementById('fill-date').valueAsDate = new Date();
+      s.questions.forEach((q, idx) => {
+        const div = document.createElement('div');
+        div.className = 'p-3 border rounded';
+        div.innerHTML = `<label class="block text-sm font-medium mb-1">${q.title} <span class="text-red-500">*</span></label>`;
+        if (q.type === 'radio') {
+          q.options.forEach((opt, i) => {
+            div.innerHTML += `
+            <div class="flex items-center mb-1">
+              <input type="radio" name="q${idx}" value="${opt}" id="q${idx}_${i}" class="mr-1" required>
+              <label for="q${idx}_${i}">${opt}</label>
+            </div>`;
+          });
+        } else if (q.type === 'select') {
+          let sel = `<select name="q${idx}" class="w-full px-3 py-2 border rounded" required><option value="">请选择</option>`;
+          q.options.forEach(o => sel += `<option value="${o}">${o}</option>`);
+          div.innerHTML += sel + '</select>';
+        } else if (q.type === 'date') {
+          div.innerHTML += `<input type="date" name="q${idx}" class="w-full px-3 py-2 border rounded" required>`;
+        } else if (q.type === 'input') {
+          div.innerHTML += `<input type="text" name="q${idx}" class="w-full px-3 py-2 border rounded" placeholder="请填写" required>`;
+        }
+        fields.appendChild(div);
+      });
+    }
+    document.getElementById('submit-fill').addEventListener('click', () => {
+      const date = document.getElementById('fill-date').value;
+      const name = document.getElementById('fill-name').value.trim();
+      if (!date || !name) { alert('请填写日期和姓名'); return; }
+      const s = surveys.find(x => x.surveyId === currentSurveyId);
+      const answers = [];
+      document.querySelectorAll('#fill-fields [name^="q"]').forEach(el => {
+        if ((el.type === 'radio' && el.checked) || (el.type !== 'radio' && el.value)) {
+          const idx = parseInt(el.name.replace('q', ''));
+          answers.push({ q: s.questions[idx].title, a: el.value });
+        }
+      });
+      records.unshift({
+        surveyId: currentSurveyId,
+        surveyTitle: s.title,
+        date,
+        name,
+        answers,
+        submitTime: new Date().toLocaleString()
+      });
+      saveRecords();
+      alert('提交成功');
+      document.getElementById('reset-fill').click();
+    });
+    document.getElementById('reset-fill').onclick = () => {
+      document.querySelectorAll('#fill-fields input, #fill-fields select').forEach(e => {
+        if (e.type === 'radio') e.checked = false;
+        else if (e.id !== 'fill-date') e.value = '';
+      });
+    };
+
+    // ========== 4. 记录页面 ==========
+    function initRecords() {
+      const sel = document.getElementById('record-survey-id');
+      sel.innerHTML = '<option value="">全部问卷</option>';
+      surveys.forEach(s => {
+        sel.innerHTML += `<option value="${s.surveyId}">${s.title}</option>`;
+      });
+      renderRecords();
+    }
+    function renderRecords() {
+      const surveyId = document.getElementById('record-survey-id').value;
+      const name = document.getElementById('record-name').value.trim().toLowerCase();
+      let list = records;
+      if (surveyId) list = list.filter(r => r.surveyId === surveyId);
+      if (name) list = list.filter(r => r.name.toLowerCase().includes(name));
+      const tb = document.getElementById('records-body');
+      if (list.length === 0) {
+        tb.innerHTML = `<tr><td colspan="5" class="border px-3 py-6 text-center text-gray-500">无记录</td></tr>`;
+        return;
+      }
+      let html = '';
+      list.forEach((r, i) => {
+        let ans = '';
+        r.answers.forEach((x, j) => {
+          ans += `<div class="mb-1"><span class="font-medium">${x.q}：</span>${x.a}</div>`;
+        });
+        html += `
+        <tr class="border-b hover:bg-gray-50">
+          <td class="border px-3 py-2">${r.surveyTitle}</td>
+          <td class="border px-3 py-2">${r.date}</td>
+          <td class="border px-3 py-2">${r.name}</td>
+          <td class="border px-3 py-2 text-xs">${ans}</td>
+          <td class="border px-3 py-2">
+            <button onclick="delRecord(${i})" class="text-red-500 text-sm"><i class="fa fa-trash mr-1"></i>删</button>
+          </td>
+        </tr>`;
+      });
+      tb.innerHTML = html;
+    }
+    window.delRecord = function (i) {
+      if (!confirm('确定删除？')) return;
+      records.splice(i, 1);
+      saveRecords();
+      renderRecords();
+    };
+    document.getElementById('search-records').onclick = renderRecords;
+    document.getElementById('export-records').onclick = () => {
+      const surveyId = document.getElementById('record-survey-id').value;
+      const name = document.getElementById('record-name').value.trim().toLowerCase();
+      let list = records;
+      if (surveyId) list = list.filter(r => r.surveyId === surveyId);
+      if (name) list = list.filter(r => r.name.toLowerCase().includes(name));
+      if (list.length === 0) { alert('无可导出数据'); return; }
+      let csv = '问卷名称,填写日期,负责人,提交时间,问题,答案\n';
+      list.forEach(r => {
+        r.answers.forEach(x => {
+          csv += `"${r.surveyTitle}","${r.date}","${r.name}","${r.submitTime}","${x.q}","${x.a}"\n`;
+        });
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '生产统计记录_' + new Date().toLocaleDateString() + '.csv';
+      a.click();
+    };
+
+    // ========== 导航绑定 ==========
+    document.getElementById('nav-surveys').onclick = showSurveys;
+    document.getElementById('nav-records').onclick = showRecords;
+    document.getElementById('back-to-list').onclick = showSurveys;
+    document.getElementById('back-from-records').onclick = showSurveys;
+    document.getElementById('create-survey').onclick = () => showEditor(null);
+
+    // ========== 页面加载：支持URL参数直接进入填写 ==========
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const surveyId = urlParams.get('surveyId');
+      if (surveyId && surveys.some(x => x.surveyId === surveyId)) {
+        showFill(surveyId);
+      } else {
+        showSurveys();
+      }
+    });
+  </script>
+</body>
+</html>
